@@ -2784,28 +2784,32 @@
             { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true },
             { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false },
             { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false },
-            { id:'m4', name:'Student', photo:null, emoji:'👩‍🎓', featured:false },
-            { id:'m5', name:'Student', photo:null, emoji:'👨‍🎓', featured:false },
-            { id:'m6', name:'Student', photo:null, emoji:'👩‍💼', featured:false },
-            { id:'m7', name:'Student', photo:null, emoji:'👨‍💻', featured:false },
-            { id:'m8', name:'Student', photo:null, emoji:'👩‍🎨', featured:false },
-            { id:'m9', name:'Student', photo:null, emoji:'👨‍🏫', featured:false },
-            { id:'m10', name:'Student', photo:null, emoji:'👩‍🔬', featured:false },
-            { id:'m11', name:'Student', photo:null, emoji:'👨‍🚀', featured:false },
-            { id:'m12', name:'Student', photo:null, emoji:'👩‍🚒', featured:false },
-            { id:'m13', name:'Student', photo:null, emoji:'👨‍✈️', featured:false },
-            { id:'m14', name:'Student', photo:null, emoji:'👩‍⚕️', featured:false },
-            { id:'m15', name:'Student', photo:null, emoji:'👨‍🍳', featured:false },
-            { id:'m16', name:'Student', photo:null, emoji:'👩‍🎤', featured:false },
-            { id:'m17', name:'Student', photo:null, emoji:'👨‍🎸', featured:false }
+            { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false },
+            { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false },
+            { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false },
+            { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false },
+            { id:'m8', name:'Student', photo:null, emoji:'👩‍🎓', featured:false },
+            { id:'m9', name:'Student', photo:null, emoji:'👨‍🎓', featured:false },
+            { id:'m10', name:'Student', photo:null, emoji:'👩‍💼', featured:false },
+            { id:'m11', name:'Student', photo:null, emoji:'👨‍💻', featured:false },
+            { id:'m12', name:'Student', photo:null, emoji:'👩‍🎨', featured:false },
+            { id:'m13', name:'Student', photo:null, emoji:'👨‍🏫', featured:false },
+            { id:'m14', name:'Student', photo:null, emoji:'👩‍🔬', featured:false },
+            { id:'m15', name:'Student', photo:null, emoji:'👨‍🚀', featured:false },
+            { id:'m16', name:'Student', photo:null, emoji:'👩‍🚒', featured:false },
+            { id:'m17', name:'Student', photo:null, emoji:'👨‍✈️', featured:false },
+            { id:'m18', name:'Student', photo:null, emoji:'👩‍⚕️', featured:false },
+            { id:'m19', name:'Student', photo:null, emoji:'👨‍🍳', featured:false },
+            { id:'m20', name:'Student', photo:null, emoji:'👩‍🎤', featured:false },
+            { id:'m21', name:'Student', photo:null, emoji:'👨‍🎸', featured:false }
         ];
         let members = [];
-        let memberIdCounter = 18;
+        let memberIdCounter = 22;
 
         async function loadMembers() {
             try {
                 const { data, error } = await supaClient.from('members').select('*');
-                if (!error && data && data.length > 0) { members = data; return; }
+                if (!error && data && data.length > 0) { members = data.sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,''))); return; }
             } catch(e) { console.warn('Supabase members unavailable, using localStorage', e); }
             try {
                 const saved = localStorage.getItem('ielts64_members');
