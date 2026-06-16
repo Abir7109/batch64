@@ -903,47 +903,52 @@
         .member-popup .funny-grid {
             display: flex;
             gap: 8px;
-            flex-wrap: wrap;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+            margin: 0 -4px;
+            padding: 0 4px;
         }
-        .member-popup .funny-grid.empty {
-            display: none;
+        .member-popup .funny-grid::-webkit-scrollbar { display: none; }
+        .member-popup .funny-grid.empty { display: none; }
+        .member-popup .funny-slide {
+            flex: 0 0 100%;
+            scroll-snap-align: center;
+            display: flex;
+            justify-content: center;
         }
-        .member-popup .funny-thumb {
-            width: 70px;
-            height: 70px;
-            border-radius: 14px;
+        .member-popup .funny-slide img {
+            width: 100%;
+            max-width: 260px;
+            height: 180px;
             object-fit: cover;
+            border-radius: 14px;
             border: 2px solid #FFF2D0;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .member-popup .funny-thumb:hover {
-            transform: scale(1.08);
+        .member-popup .funny-slide img:hover {
+            transform: scale(1.02);
             box-shadow: 0 4px 14px rgba(0,0,0,0.12);
         }
-        .member-popup .funny-add {
-            font-family: 'Quicksand', sans-serif;
-            font-weight: 600;
-            font-size: 0.78rem;
-            color: #e8956a;
-            background: #FFF2D0;
-            border: 2px dashed #e8956a;
-            border-radius: 12px;
-            padding: 6px 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 0.5rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            min-height: 36px;
-            touch-action: manipulation;
+        .member-popup .funny-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 6px;
         }
-        .member-popup .funny-add:hover {
+        .member-popup .funny-dots.hidden { display: none; }
+        .member-popup .funny-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
             background: #e8956a;
-            color: #fff;
+            opacity: 0.25;
+            transition: opacity 0.2s ease;
+            cursor: pointer;
         }
-
+        .member-popup .funny-dot.active { opacity: 1; }
         /* Funny photo lightbox */
         .funny-lightbox {
             position: fixed;
@@ -1844,7 +1849,6 @@
             <div class="funny-section" id="funnySection" style="display:none">
                 <div class="funny-head">😂 Funny Photos</div>
                 <div class="funny-grid" id="funnyGrid"></div>
-                <button class="funny-add" id="funnyAddBtn">➕ Add</button>
             </div>
         </div>
     </div>
@@ -2519,22 +2523,66 @@
                 popupImg.style.display = 'none';
             }
             popupName.textContent = member.name;
-            // Render funny photos
+            // Render funny photos as slider
             const photos = member.funny_photos || [];
             funnyGrid.innerHTML = '';
             funnyGrid.classList.toggle('empty', photos.length === 0);
-            photos.forEach(url => {
+            if (photos.length === 1) {
+                const slide = document.createElement('div');
+                slide.className = 'funny-slide';
                 const img = document.createElement('img');
-                img.className = 'funny-thumb';
-                img.src = url;
+                img.src = photos[0];
                 img.alt = 'Funny photo';
                 img.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    document.getElementById('funnyLightboxImg').src = url;
+                    document.getElementById('funnyLightboxImg').src = photos[0];
                     document.getElementById('funnyLightbox').classList.add('active');
                 });
-                funnyGrid.appendChild(img);
-            });
+                slide.appendChild(img);
+                funnyGrid.appendChild(slide);
+            } else if (photos.length > 1) {
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'funny-dots';
+                photos.forEach((url, i) => {
+                    const slide = document.createElement('div');
+                    slide.className = 'funny-slide';
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = 'Funny photo ' + (i + 1);
+                    img.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        document.getElementById('funnyLightboxImg').src = url;
+                        document.getElementById('funnyLightbox').classList.add('active');
+                    });
+                    slide.appendChild(img);
+                    funnyGrid.appendChild(slide);
+                    const dot = document.createElement('span');
+                    dot.className = 'funny-dot' + (i === 0 ? ' active' : '');
+                    dot.dataset.index = i;
+                    dot.addEventListener('click', function() {
+                        const idx = parseInt(this.dataset.index);
+                        const slides = funnyGrid.querySelectorAll('.funny-slide');
+                        if (slides[idx]) slides[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    });
+                    dotsContainer.appendChild(dot);
+                });
+                funnyGrid.after(dotsContainer);
+                funnyGrid.addEventListener('scroll', function() {
+                    const slides = this.querySelectorAll('.funny-slide');
+                    const dots = this.nextElementSibling;
+                    if (!dots || !dots.classList.contains('funny-dots')) return;
+                    const dotsEls = dots.querySelectorAll('.funny-dot');
+                    let activeIdx = 0;
+                    slides.forEach((s, i) => {
+                        const rect = s.getBoundingClientRect();
+                        const parentRect = this.getBoundingClientRect();
+                        const center = rect.left + rect.width / 2;
+                        const parentCenter = parentRect.left + parentRect.width / 2;
+                        if (Math.abs(center - parentCenter) < rect.width / 2) activeIdx = i;
+                    });
+                    dotsEls.forEach((d, i) => d.classList.toggle('active', i === activeIdx));
+                });
+            }
             funnySection.style.display = 'block';
             overlay.classList.add('active');
         }
@@ -2543,17 +2591,6 @@
             document.getElementById('memberOverlay').classList.remove('active');
             activeMember = null;
         }
-        // Add funny photo
-        document.getElementById('funnyAddBtn').addEventListener('click', function() {
-            const url = prompt('Paste the image URL for the funny photo:');
-            if (!url || !url.trim()) return;
-            const member = activeMember;
-            if (!member) return;
-            if (!member.funny_photos) member.funny_photos = [];
-            member.funny_photos.push(url.trim());
-            saveMembers();
-            openMemberPopup(member);
-        });
 
         // ===== SHARED BOARD =====
         let boardStrokes = [];
@@ -2743,8 +2780,8 @@
             { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[] },
             { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[] },
             { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'] },
+            { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'] },
             { id:'m100', name:'Student', photo:null, emoji:'👩‍🎓', featured:false, funny_photos:[] },
             { id:'m101', name:'Student', photo:null, emoji:'👩‍💼', featured:false, funny_photos:[] },
             { id:'m102', name:'Student', photo:null, emoji:'👨‍💻', featured:false, funny_photos:[] },
