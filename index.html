@@ -131,8 +131,9 @@
         }
 
         .loading-screen.hidden {
-            pointer-events: none;
-            visibility: hidden;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            display: none !important;
         }
 
         .loading-sparkle {
@@ -2212,6 +2213,14 @@
                 e.preventDefault();
             }
         }, { passive: false });
+
+        // Click / tap anywhere on the loading screen to dismiss (mobile fallback)
+        document.getElementById('loadingScreen').addEventListener('click', function(e) {
+            if (!loadingDismissed && loadingReady) {
+                e.preventDefault();
+                dismissLoading();
+            }
+        });
 
         // Keyboard events
         window.addEventListener('keydown', function(e) {
