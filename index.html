@@ -2036,7 +2036,10 @@
 
     <script>
         // ===== SUPABASE =====
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let supabase = null;
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch(e) { console.warn('Supabase init failed, running in local-only mode', e); }
 
         // ===== STORY DATA =====
         const DEFAULT_STORIES = [
@@ -2597,9 +2600,11 @@
         let boardRedraw = null;
         function boardSave() {
             try { localStorage.setItem('ielts64_board', JSON.stringify(boardStrokes)); } catch(e) {}
-            supabase.from('board_strokes').upsert({ id: 1, strokes: boardStrokes, updated_at: new Date().toISOString() }).then(({ error }) => {
-                if (error) console.warn('Supabase board save failed', error);
-            });
+            if (supabase) {
+                supabase.from('board_strokes').upsert({ id: 1, strokes: boardStrokes, updated_at: new Date().toISOString() }).then(({ error }) => {
+                    if (error) console.warn('Supabase board save failed', error);
+                });
+            }
         }
         async function boardLoad() {
             try {
