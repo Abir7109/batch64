@@ -2470,6 +2470,7 @@
             let strokes = boardStrokes;
             let activeColor = '#444';
             let fitTimer = null;
+            let sessionStrokesDrawn = 0;
 
             function resizeCanvas() {
                 const rect = canvas.getBoundingClientRect();
@@ -2513,6 +2514,7 @@
                 drawing = false;
                 if (currentStroke.length > 1) {
                     strokes.push(currentStroke.slice());
+                    sessionStrokesDrawn++;
                     if (fitTimer) clearTimeout(fitTimer);
                     fitTimer = setTimeout(autoFit, 3000);
                     boardSave();
@@ -2590,11 +2592,15 @@
                 });
             });
 
-            // Undo
+            // Undo — only removes strokes drawn in this session
             document.getElementById('boardUndo').addEventListener('click', function() {
-                if (strokes.length === 0) return;
+                if (sessionStrokesDrawn === 0) {
+                    document.getElementById('boardMsg').textContent = '⛔ Can only undo your own drawings from this session';
+                    return;
+                }
                 if (fitTimer) { clearTimeout(fitTimer); fitTimer = null; }
                 strokes.pop();
+                sessionStrokesDrawn--;
                 boardSave();
                 if (strokes.length > 0) {
                     fitTimer = setTimeout(autoFit, 3000);
