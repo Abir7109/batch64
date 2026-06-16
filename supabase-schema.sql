@@ -8,6 +8,7 @@ CREATE TABLE members (
   photo TEXT,
   emoji TEXT,
   featured BOOLEAN DEFAULT FALSE,
+  funny_photos JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

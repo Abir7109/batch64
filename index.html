@@ -886,6 +886,85 @@
             border-radius: 2px;
             pointer-events: none;
         }
+        .member-popup .funny-section {
+            margin-top: 1.2rem;
+            text-align: left;
+        }
+        .member-popup .funny-head {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #c4836a;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .member-popup .funny-grid {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .member-popup .funny-grid.empty {
+            display: none;
+        }
+        .member-popup .funny-thumb {
+            width: 70px;
+            height: 70px;
+            border-radius: 14px;
+            object-fit: cover;
+            border: 2px solid #FFF2D0;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .member-popup .funny-thumb:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+        }
+        .member-popup .funny-add {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: #e8956a;
+            background: #FFF2D0;
+            border: 2px dashed #e8956a;
+            border-radius: 12px;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            min-height: 36px;
+            touch-action: manipulation;
+        }
+        .member-popup .funny-add:hover {
+            background: #e8956a;
+            color: #fff;
+        }
+
+        /* Funny photo lightbox */
+        .funny-lightbox {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            z-index: 100001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: zoom-out;
+        }
+        .funny-lightbox.active { display: flex; }
+        .funny-lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            object-fit: contain;
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -1762,7 +1841,15 @@
             <div class="popup-emoji" id="popupEmoji" style="display:none"></div>
             <div class="popup-name" id="popupName"></div>
             <div class="popup-role">Member of IELTS Batch 64</div>
+            <div class="funny-section" id="funnySection" style="display:none">
+                <div class="funny-head">😂 Funny Photos</div>
+                <div class="funny-grid" id="funnyGrid"></div>
+                <button class="funny-add" id="funnyAddBtn">➕ Add</button>
+            </div>
         </div>
+    </div>
+    <div class="funny-lightbox" id="funnyLightbox" onclick="this.classList.remove('active')">
+        <img id="funnyLightboxImg" src="" alt="">
     </div>
 
     <div class="torn-divider light"></div>
@@ -2413,27 +2500,60 @@
     <script>
 
         // ===== MEMBER POPUP =====
-        function openMemberPopup(imgSrc, emoji, name) {
+        let activeMember = null;
+        function openMemberPopup(member) {
+            activeMember = member;
             const overlay = document.getElementById('memberOverlay');
             const popupImg = document.getElementById('popupImg');
             const popupEmoji = document.getElementById('popupEmoji');
             const popupName = document.getElementById('popupName');
-            if (imgSrc) {
-                popupImg.src = imgSrc; popupImg.alt = name;
+            const funnySection = document.getElementById('funnySection');
+            const funnyGrid = document.getElementById('funnyGrid');
+            if (member.photo) {
+                popupImg.src = member.photo; popupImg.alt = member.name;
                 popupImg.style.display = 'block';
                 popupEmoji.style.display = 'none';
             } else {
-                popupEmoji.textContent = emoji;
+                popupEmoji.textContent = member.emoji || '👤';
                 popupEmoji.style.display = 'flex';
                 popupImg.style.display = 'none';
             }
-            popupName.textContent = name;
+            popupName.textContent = member.name;
+            // Render funny photos
+            const photos = member.funny_photos || [];
+            funnyGrid.innerHTML = '';
+            funnyGrid.classList.toggle('empty', photos.length === 0);
+            photos.forEach(url => {
+                const img = document.createElement('img');
+                img.className = 'funny-thumb';
+                img.src = url;
+                img.alt = 'Funny photo';
+                img.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    document.getElementById('funnyLightboxImg').src = url;
+                    document.getElementById('funnyLightbox').classList.add('active');
+                });
+                funnyGrid.appendChild(img);
+            });
+            funnySection.style.display = 'block';
             overlay.classList.add('active');
         }
         function closeMemberPopup(e) {
             if (e && e.target !== document.getElementById('memberOverlay') && e.target.id !== 'memberOverlay') return;
             document.getElementById('memberOverlay').classList.remove('active');
+            activeMember = null;
         }
+        // Add funny photo
+        document.getElementById('funnyAddBtn').addEventListener('click', function() {
+            const url = prompt('Paste the image URL for the funny photo:');
+            if (!url || !url.trim()) return;
+            const member = activeMember;
+            if (!member) return;
+            if (!member.funny_photos) member.funny_photos = [];
+            member.funny_photos.push(url.trim());
+            saveMembers();
+            openMemberPopup(member);
+        });
 
         // ===== SHARED BOARD =====
         let boardStrokes = [];
@@ -2616,34 +2736,34 @@
         })();
 
         const DEFAULT_MEMBERS = [
-            { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true },
-            { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false },
-            { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false },
-            { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false },
-            { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false },
-            { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false },
-            { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false },
-            { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false },
-            { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false },
-            { id:'m100', name:'Student', photo:null, emoji:'👩‍🎓', featured:false },
-            { id:'m101', name:'Student', photo:null, emoji:'👩‍💼', featured:false },
-            { id:'m102', name:'Student', photo:null, emoji:'👨‍💻', featured:false },
-            { id:'m103', name:'Student', photo:null, emoji:'👩‍🎨', featured:false },
-            { id:'m104', name:'Student', photo:null, emoji:'👨‍🏫', featured:false },
-            { id:'m105', name:'Student', photo:null, emoji:'👩‍🔬', featured:false },
-            { id:'m106', name:'Student', photo:null, emoji:'👨‍🚀', featured:false },
-            { id:'m107', name:'Student', photo:null, emoji:'👩‍🚒', featured:false },
-            { id:'m108', name:'Student', photo:null, emoji:'👨‍✈️', featured:false },
-            { id:'m109', name:'Student', photo:null, emoji:'👩‍⚕️', featured:false },
-            { id:'m110', name:'Student', photo:null, emoji:'👨‍🍳', featured:false },
-            { id:'m111', name:'Student', photo:null, emoji:'👩‍🎤', featured:false },
-            { id:'m112', name:'Student', photo:null, emoji:'👨‍🎸', featured:false }
+            { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true, funny_photos:[] },
+            { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:[] },
+            { id:'m100', name:'Student', photo:null, emoji:'👩‍🎓', featured:false, funny_photos:[] },
+            { id:'m101', name:'Student', photo:null, emoji:'👩‍💼', featured:false, funny_photos:[] },
+            { id:'m102', name:'Student', photo:null, emoji:'👨‍💻', featured:false, funny_photos:[] },
+            { id:'m103', name:'Student', photo:null, emoji:'👩‍🎨', featured:false, funny_photos:[] },
+            { id:'m104', name:'Student', photo:null, emoji:'👨‍🏫', featured:false, funny_photos:[] },
+            { id:'m105', name:'Student', photo:null, emoji:'👩‍🔬', featured:false, funny_photos:[] },
+            { id:'m106', name:'Student', photo:null, emoji:'👨‍🚀', featured:false, funny_photos:[] },
+            { id:'m107', name:'Student', photo:null, emoji:'👩‍🚒', featured:false, funny_photos:[] },
+            { id:'m108', name:'Student', photo:null, emoji:'👨‍✈️', featured:false, funny_photos:[] },
+            { id:'m109', name:'Student', photo:null, emoji:'👩‍⚕️', featured:false, funny_photos:[] },
+            { id:'m110', name:'Student', photo:null, emoji:'👨‍🍳', featured:false, funny_photos:[] },
+            { id:'m111', name:'Student', photo:null, emoji:'👩‍🎤', featured:false, funny_photos:[] },
+            { id:'m112', name:'Student', photo:null, emoji:'👨‍🎸', featured:false, funny_photos:[] }
         ];
         let members = [];
         async function loadMembers() {
             try {
                 const { data, error } = await supaClient.from('members').select('*');
-                if (!error && data && data.length > 0) { members = data.sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,''))); return; }
+                if (!error && data && data.length > 0) { members = data.map(m => ({ ...m, funny_photos: m.funny_photos || [] })).sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,''))); return; }
             } catch(e) { console.warn('Supabase members unavailable, using localStorage', e); }
             try {
                 const saved = localStorage.getItem('ielts64_members');
@@ -2658,9 +2778,16 @@
                 const { error: delErr } = await supaClient.from('members').delete().gte('id', '');
                 if (delErr) throw delErr;
                 if (members.length > 0) {
-                    const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+                    const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
                     const { error: insErr } = await supaClient.from('members').insert(items);
-                    if (insErr) throw insErr;
+                    if (insErr && insErr.message && insErr.message.includes('funny_photos')) {
+                        // Column doesn't exist yet — retry without it
+                        const fallback = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+                        const { error: retryErr } = await supaClient.from('members').insert(fallback);
+                        if (retryErr) throw retryErr;
+                    } else if (insErr) {
+                        throw insErr;
+                    }
                 }
             } catch(e) { console.warn('Supabase members sync failed', e); }
         }
@@ -2677,10 +2804,7 @@
                     card.innerHTML = '<div class="card-emoji">' + (m.emoji || '👤') + '</div><span class="card-label">' + m.name + '</span>';
                 }
                 card.style.cursor = 'pointer';
-                card.addEventListener('click', function() {
-                    if (m.photo) { openMemberPopup(m.photo, null, m.name); }
-                    else { openMemberPopup(null, m.emoji || '👤', m.name); }
-                });
+                card.addEventListener('click', function() { openMemberPopup(m); });
                 grid.appendChild(card);
             });
         }
