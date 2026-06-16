@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin — IELTS Batch 64</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;600;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Quicksand',sans-serif;background:#fdfbf7;color:#444;min-height:100vh;display:flex}
+a{color:#e8956a;text-decoration:none}
+
+/* Sidebar */
+.sidebar{width:220px;background:#fff;border-right:2px solid #FFF2D0;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s ease}
+.sidebar-brand{padding:1.2rem 1rem;border-bottom:2px solid #FFF2D0;font-family:'Pacifico',cursive;font-size:1.2rem;color:#e8956a}
+.sidebar-nav{flex:1;padding:.5rem 0;overflow-y:auto}
+.sidebar-nav a{display:flex;align-items:center;gap:10px;padding:.7rem 1rem;font-weight:600;font-size:.85rem;color:#c4836a;transition:all .2s ease;border-left:3px solid transparent}
+.sidebar-nav a:hover{background:#FFF2D0;color:#e8956a}
+.sidebar-nav a.active{background:#FFF2D0;color:#e8956a;border-left-color:#e8956a}
+.sidebar-foot{padding:1rem;border-top:2px solid #FFF2D0}
+.sidebar-foot a{display:flex;align-items:center;gap:8px;font-size:.8rem;color:#c4836a;font-weight:600}
+.sidebar-foot a:hover{color:#e8956a}
+.menu-toggle{display:none;position:fixed;top:12px;left:12px;z-index:200;background:#e8956a;color:#fff;border:none;width:40px;height:40px;border-radius:10px;font-size:1.2rem;cursor:pointer;touch-action:manipulation}
+
+/* Main */
+.main{margin-left:220px;flex:1;padding:2rem;max-width:100%}
+.main h1{font-family:'Pacifico',cursive;font-size:1.6rem;color:#e8956a;margin-bottom:.3rem}
+.main .sub{font-size:.85rem;color:#c4836a;margin-bottom:1.5rem}
+.section{display:none}
+.section.active{display:block}
+
+/* Login overlay */
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#fdfbf7,#FFF2D0);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-overlay.hidden{display:none}
+.login-box{background:#fff;max-width:380px;width:100%;border-radius:24px;padding:2.5rem 2rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.08);border:3px solid #FFF2D0}
+.login-box h2{font-family:'Pacifico',cursive;font-size:1.6rem;color:#e8956a;margin-bottom:.3rem}
+.login-box p{font-size:.85rem;color:#c4836a;margin-bottom:1.5rem}
+.login-box input{width:100%;padding:12px 16px;font-family:'Quicksand',sans-serif;font-size:16px;border:2px solid #FFF2D0;border-radius:12px;outline:none;text-align:center;transition:border-color .2s ease}
+.login-box input:focus{border-color:#e8956a}
+.login-box .login-btn{width:100%;margin-top:.8rem;padding:12px;font-family:'Quicksand',sans-serif;font-weight:700;font-size:.9rem;background:#e8956a;color:#fff;border:none;border-radius:12px;cursor:pointer;transition:background .2s ease;min-height:44px}
+.login-box .login-btn:hover{background:#d4805a}
+.login-err{color:#ef5350;font-size:.8rem;font-weight:600;margin-top:.5rem;display:none}
+
+/* Stats cards */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem}
+.stat-card{background:#fff;border-radius:16px;padding:1.2rem;border:2px solid #FFF2D0;text-align:center}
+.stat-card .num{font-family:'Poppins',sans-serif;font-size:1.8rem;font-weight:600;color:#e8956a}
+.stat-card .lbl{font-size:.75rem;color:#c4836a;font-weight:600;margin-top:2px}
+
+/* Cards for member/story rows */
+.card-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border-radius:12px;border:1px solid #f0ebe0;margin-bottom:6px;transition:border-color .2s ease}
+.card-row:hover{border-color:#FFB2B2}
+.card-preview{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,#FFB2B2,#FFF2D0);display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.card-preview img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.card-info{flex:1;min-width:0}
+.card-name{font-weight:600;font-size:.88rem;color:#444}
+.card-meta{font-size:.7rem;color:#aaa}
+.card-actions{display:flex;gap:4px;flex-shrink:0}
+.card-actions button{background:none;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s ease;touch-action:manipulation}
+.card-actions .e-btn:hover{background:#FFF2D0}
+.card-actions .d-btn:hover{background:#ffe0e0}
+.card-actions .p-btn:hover{background:#e8f5e9}
+
+/* Forms */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:5000;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px)}
+.modal-overlay.active{display:flex}
+.modal{background:#fdfbf7;max-width:520px;width:100%;border-radius:20px;padding:1.5rem;position:relative;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);border:3px solid #FFF2D0}
+.modal h3{font-family:'Pacifico',cursive;font-size:1.2rem;color:#e8956a;margin-bottom:1rem}
+.modal-close{position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.6rem;color:#c4836a;cursor:pointer;line-height:1}
+.field{margin-bottom:.7rem}
+.field label{display:block;font-weight:700;font-size:.75rem;color:#c4836a;margin-bottom:3px}
+.field input,.field textarea,.field select{width:100%;padding:10px 12px;font-family:'Quicksand',sans-serif;font-size:16px;border:2px solid #FFF2D0;border-radius:10px;background:#fff;color:#444;outline:none;transition:border-color .2s ease}
+.field input:focus,.field textarea:focus{border-color:#e8956a}
+.field textarea{resize:vertical;min-height:60px}
+.field-row{display:flex;gap:8px}
+.field-row .field{flex:1}
+.form-actions{display:flex;gap:8px;margin-top:.8rem}
+.btn{font-family:'Quicksand',sans-serif;font-weight:700;font-size:.82rem;padding:10px 20px;border-radius:12px;border:none;cursor:pointer;transition:all .2s ease;min-height:40px;touch-action:manipulation;display:inline-flex;align-items:center;gap:6px}
+.btn.primary{background:#e8956a;color:#fff}
+.btn.primary:hover{background:#d4805a}
+.btn.danger{background:#FFB2B2;color:#fff}
+.btn.danger:hover{background:#ff8a8a}
+.btn.secondary{background:#FFF2D0;color:#c4836a}
+.btn.secondary:hover{background:#f5e6c0}
+.btn.small{padding:6px 12px;font-size:.72rem;min-height:30px}
+.btn.xs{padding:3px 8px;font-size:.65rem;min-height:24px;border-radius:8px}
+
+/* Funny photos */
+.fp-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.fp-thumb{width:60px;height:60px;border-radius:10px;object-fit:cover;border:2px solid #FFF2D0;position:relative}
+.fp-remove{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#ef5350;color:#fff;border:none;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.fp-add-btn{font-size:.7rem;padding:4px 10px;min-height:28px}
+
+/* Board */
+.board-preview-wrap{background:#fff;border-radius:14px;border:2px solid #FFF2D0;overflow:hidden;margin-bottom:1rem}
+.board-preview-wrap canvas{display:block;width:100%;height:200px}
+
+/* Data */
+.data-panel{background:#fff;border-radius:14px;border:2px solid #FFF2D0;padding:1.2rem}
+.data-panel p{font-size:.85rem;color:#c4836a;margin-bottom:.5rem}
+
+/* Responsive */
+@media(max-width:768px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .menu-toggle{display:flex;align-items:center;justify-content:center}
+    .main{margin-left:0;padding:1.2rem;padding-top:64px}
+    .stats-row{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:500px){
+    .field-row{flex-direction:column;gap:0}
+    .main{padding:.8rem;padding-top:60px}
+}
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+        <h2>🔐 Admin Panel</h2>
+        <p>IELTS Batch 64</p>
+        <input type="password" id="adminPwd" placeholder="Enter password" autocomplete="off">
+        <button class="login-btn" id="loginBtn">Unlock</button>
+        <div class="login-err" id="loginErr">Incorrect password</div>
+    </div>
+</div>
+
+<button class="menu-toggle" id="menuToggle">☰</button>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">✦ IELTS Batch 64</div>
+    <nav class="sidebar-nav">
+        <a href="#" class="active" data-section="dashboard">📊 Dashboard</a>
+        <a href="#" data-section="members">👥 Members</a>
+        <a href="#" data-section="stories">📖 Stories</a>
+        <a href="#" data-section="board">🎨 Board</a>
+        <a href="#" data-section="data">💾 Data</a>
+    </nav>
+    <div class="sidebar-foot">
+        <a href="#" id="logoutLink">🚪 Logout</a>
+        <a href="/" style="margin-top:6px">🏠 Back to Site</a>
+    </div>
+</aside>
+
+<div class="main" id="mainContent">
+    <div class="section active" id="secDashboard">
+        <h1>📊 Dashboard</h1>
+        <p class="sub">Overview of IELTS Batch 64 data</p>
+        <div class="stats-row">
+            <div class="stat-card"><div class="num" id="statMembers">0</div><div class="lbl">Members</div></div>
+            <div class="stat-card"><div class="num" id="statStories">0</div><div class="lbl">Stories</div></div>
+            <div class="stat-card"><div class="num" id="statBoard">0</div><div class="lbl">Board Strokes</div></div>
+        </div>
+    </div>
+
+    <div class="section" id="secMembers">
+        <h1>👥 Members</h1>
+        <p class="sub">Manage member profiles and funny photos</p>
+        <div style="margin-bottom:.8rem"><button class="btn primary" id="addMemberBtn">➕ Add Member</button></div>
+        <div id="membersList"></div>
+    </div>
+
+    <div class="section" id="secStories">
+        <h1>📖 Stories</h1>
+        <p class="sub">Manage story tree entries</p>
+        <div style="margin-bottom:.8rem"><button class="btn primary" id="addStoryBtn">➕ Add Story</button></div>
+        <div id="storiesList"></div>
+    </div>
+
+    <div class="section" id="secBoard">
+        <h1>🎨 Board</h1>
+        <p class="sub">Shared drawing board</p>
+        <div class="stats-row" style="grid-template-columns:1fr">
+            <div class="stat-card"><div class="num" id="boardStrokeCount">0</div><div class="lbl">Strokes</div></div>
+        </div>
+        <div class="board-preview-wrap"><canvas id="boardPreview"></canvas></div>
+        <button class="btn danger" id="clearBoardBtn">🗑 Clear Entire Board</button>
+    </div>
+
+    <div class="section" id="secData">
+        <h1>💾 Data</h1>
+        <p class="sub">Export, import, or reset all data</p>
+        <div class="data-panel">
+            <p>Members: <strong id="dataMembers">0</strong> &middot; Stories: <strong id="dataStories">0</strong> &middot; Board: <strong id="dataBoard">0</strong> strokes</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:.8rem">
+                <button class="btn primary" id="exportBtn">📥 Export JSON</button>
+                <button class="btn secondary" id="importBtn">📤 Import JSON</button>
+                <button class="btn danger" id="resetBtn">⚠️ Reset to Defaults</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Member Form Modal -->
+<div class="modal-overlay" id="memberModal">
+    <div class="modal">
+        <button class="modal-close" id="memberModalClose">&times;</button>
+        <h3 id="memberModalTitle">➕ Add Member</h3>
+        <input type="hidden" id="mfId">
+        <div class="field"><label>Name *</label><input type="text" id="mfName" placeholder="Full name"></div>
+        <div class="field-row">
+            <div class="field"><label>Photo URL</label><input type="text" id="mfPhoto" placeholder="https://..."></div>
+            <div class="field"><label>Emoji (fallback)</label><input type="text" id="mfEmoji" placeholder="👨‍🎓" maxlength="4"></div>
+        </div>
+        <div class="field" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="mfFeatured" style="width:auto"><label style="margin:0;font-size:.82rem">Featured (teacher/staff)</label></div>
+        <div class="field" id="mfFunnyField">
+            <label>Funny Photos</label>
+            <div class="fp-grid" id="mfFunnyGrid"></div>
+            <div style="margin-top:6px"><button class="btn secondary small fp-add-btn" id="mfAddFunny">➕ Add Photo URL</button></div>
+        </div>
+        <div class="form-actions">
+            <button class="btn primary" id="mfSubmit">💾 Save</button>
+            <button class="btn secondary" id="mfCancel" type="button">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Story Form Modal -->
+<div class="modal-overlay" id="storyModal">
+    <div class="modal">
+        <button class="modal-close" id="storyModalClose">&times;</button>
+        <h3 id="storyModalTitle">➕ Add Story</h3>
+        <input type="hidden" id="sfId">
+        <div class="field-row">
+            <div class="field"><label>Emoji</label><input type="text" id="sfEmoji" placeholder="🍃" maxlength="4"></div>
+            <div class="field"><label>Title *</label><input type="text" id="sfTitle" placeholder="Story title"></div>
+        </div>
+        <div class="field-row">
+            <div class="field"><label>Date / Occasion</label><input type="text" id="sfDate" placeholder="e.g. Where it began"></div>
+            <div class="field"><label>Divider</label><input type="text" id="sfDivider" placeholder="✨ ✨ ✨"></div>
+        </div>
+        <div class="field"><label>Story Text *</label><textarea id="sfText" rows="4" placeholder="Write the memory..."></textarea></div>
+        <div class="form-actions">
+            <button class="btn primary" id="sfSubmit">💾 Save</button>
+            <button class="btn secondary" id="sfCancel" type="button">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const ADMIN_PASSWORD = 'abir123';
+let supaClient = null;
+try {
+    supaClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e) { console.warn('Supabase init failed', e); }
+
+// === DATA ===
+let members = [];
+let stories = [];
+let boardStrokes = [];
+
+// === AUTH ===
+function checkAuth() {
+    if (sessionStorage.getItem('admin_auth') === '1') {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        return true;
+    }
+    return false;
+}
+document.getElementById('loginBtn').addEventListener('click', function() {
+    const pwd = document.getElementById('adminPwd').value;
+    if (pwd === ADMIN_PASSWORD) {
+        sessionStorage.setItem('admin_auth', '1');
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('loginErr').style.display = 'none';
+        init();
+    } else {
+        document.getElementById('loginErr').style.display = 'block';
+    }
+});
+document.getElementById('adminPwd').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+document.getElementById('logoutLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    sessionStorage.removeItem('admin_auth');
+    document.getElementById('loginOverlay').classList.remove('hidden');
+    document.getElementById('adminPwd').value = '';
+});
+
+// === NAVIGATION ===
+document.querySelectorAll('.sidebar-nav a').forEach(a => {
+    a.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.sidebar-nav a').forEach(x => x.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById('sec' + this.dataset.section.charAt(0).toUpperCase() + this.dataset.section.slice(1)).classList.add('active');
+        document.getElementById('sidebar').classList.remove('open');
+    });
+});
+document.getElementById('menuToggle').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('open');
+});
+
+// === SIDE NAV CLICKS close menu on mobile ===
+document.querySelectorAll('.sidebar-nav a').forEach(a => {
+    a.addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
+});
+
+// === SUPABASE HELPERS ===
+async function loadMembers() {
+    try {
+        const { data, error } = await supaClient.from('members').select('*');
+        if (!error && data) members = data.map(m => ({ ...m, funny_photos: m.funny_photos || [] })).sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,'')));
+    } catch(e) { console.warn(e); }
+}
+async function saveMembers() {
+    try {
+        const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
+        const { error } = await supaClient.from('members').upsert(items, { onConflict: 'id' });
+        if (error && error.message && error.message.includes('funny_photos')) {
+            const fb = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+            await supaClient.from('members').upsert(fb, { onConflict: 'id' });
+        } else if (error) throw error;
+    } catch(e) { console.warn('saveMembers failed', e); }
+}
+async function loadStories() {
+    try {
+        const { data, error } = await supaClient.from('stories').select('*').order('id');
+        if (!error && data) stories = data;
+    } catch(e) { console.warn(e); }
+}
+async function saveStories() {
+    try {
+        const items = stories.map(s => ({ ...(s.id != null ? { id: s.id } : {}), emoji: s.emoji || '🍃', title: s.title, date: s.date || null, divider: s.divider || null, text: s.text }));
+        const { data, error } = await supaClient.from('stories').upsert(items, { onConflict: 'id' }).select();
+        if (error) throw error;
+        if (data) data.forEach((row, i) => { if (stories[i]) stories[i].id = row.id; });
+    } catch(e) { console.warn('saveStories failed', e); }
+}
+async function loadBoard() {
+    try {
+        const { data, error } = await supaClient.from('board_strokes').select('strokes').eq('id', 1).single();
+        if (!error && data && data.strokes) boardStrokes = data.strokes;
+    } catch(e) { console.warn(e); }
+}
+
+// === RENDER: Dashboard ===
+function renderDashboard() {
+    document.getElementById('statMembers').textContent = members.length;
+    document.getElementById('statStories').textContent = stories.length;
+    document.getElementById('statBoard').textContent = boardStrokes.length;
+    document.getElementById('dataMembers').textContent = members.length;
+    document.getElementById('dataStories').textContent = stories.length;
+    document.getElementById('dataBoard').textContent = boardStrokes.length;
+    document.getElementById('boardStrokeCount').textContent = boardStrokes.length;
+}
+
+// === RENDER: Members ===
+function renderMembersList() {
+    const container = document.getElementById('membersList');
+    container.innerHTML = '';
+    members.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'card-row';
+        const preview = m.photo ? '<img src="' + m.photo.replace(/"/g,'&quot;') + '" alt="">' : (m.emoji || '👤');
+        div.innerHTML = '<div class="card-preview">' + preview + '</div><div class="card-info"><div class="card-name">' + m.name + '</div><div class="card-meta">' + (m.photo ? 'Photo' : 'Emoji') + (m.featured ? ' · Featured' : '') + ' · ' + ((m.funny_photos||[]).length) + ' funny photos</div></div><div class="card-actions"><button class="e-btn" onclick="editMember(\'' + m.id + '\')" title="Edit">✏️</button><button class="d-btn" onclick="deleteMember(\'' + m.id + '\')" title="Delete">🗑</button></div>';
+        container.appendChild(div);
+    });
+}
+function editMember(id) {
+    const m = members.find(x => x.id === id);
+    if (!m) return;
+    document.getElementById('mfId').value = id;
+    document.getElementById('mfName').value = m.name;
+    document.getElementById('mfPhoto').value = m.photo || '';
+    document.getElementById('mfEmoji').value = m.emoji || '';
+    document.getElementById('mfFeatured').checked = m.featured;
+    renderFunnyGrid(m.funny_photos || []);
+    document.getElementById('memberModalTitle').textContent = '✏️ Edit Member';
+    document.getElementById('mfSubmit').textContent = '💾 Update';
+    document.getElementById('memberModal').classList.add('active');
+}
+async function deleteMember(id) {
+    if (!confirm('Delete this member?')) return;
+    members = members.filter(m => m.id !== id);
+    await saveMembers();
+    renderMembersList();
+    renderDashboard();
+}
+function renderFunnyGrid(photos) {
+    const grid = document.getElementById('mfFunnyGrid');
+    grid.innerHTML = '';
+    photos.forEach((url, i) => {
+        const wrap = document.createElement('div');
+        wrap.style.position = 'relative'; wrap.style.display = 'inline-block';
+        const img = document.createElement('img');
+        img.className = 'fp-thumb';
+        img.src = url;
+        img.alt = 'Funny photo ' + (i+1);
+        img.onerror = function() { this.style.display = 'none'; };
+        const rm = document.createElement('button');
+        rm.className = 'fp-remove';
+        rm.textContent = '×';
+        rm.onclick = function() {
+            const id = document.getElementById('mfId').value;
+            const mem = members.find(x => x.id === id);
+            if (mem && mem.funny_photos) {
+                mem.funny_photos.splice(i, 1);
+                renderFunnyGrid(mem.funny_photos);
+            }
+        };
+        wrap.appendChild(img);
+        wrap.appendChild(rm);
+        grid.appendChild(wrap);
+    });
+}
+document.getElementById('mfAddFunny').addEventListener('click', function() {
+    const url = prompt('Enter funny photo URL:');
+    if (!url || !url.trim()) return;
+    const id = document.getElementById('mfId').value;
+    const mem = members.find(x => x.id === id);
+    if (mem) {
+        if (!mem.funny_photos) mem.funny_photos = [];
+        mem.funny_photos.push(url.trim());
+        renderFunnyGrid(mem.funny_photos);
+    }
+});
+document.getElementById('addMemberBtn').addEventListener('click', function() {
+    document.getElementById('mfId').value = '';
+    document.getElementById('mfName').value = '';
+    document.getElementById('mfPhoto').value = '';
+    document.getElementById('mfEmoji').value = '';
+    document.getElementById('mfFeatured').checked = false;
+    renderFunnyGrid([]);
+    document.getElementById('memberModalTitle').textContent = '➕ Add Member';
+    document.getElementById('mfSubmit').textContent = '💾 Save';
+    document.getElementById('memberModal').classList.add('active');
+});
+document.getElementById('mfSubmit').addEventListener('click', async function() {
+    const id = document.getElementById('mfId').value;
+    const name = document.getElementById('mfName').value.trim();
+    if (!name) { alert('Name is required!'); return; }
+    const photo = document.getElementById('mfPhoto').value.trim() || null;
+    const emoji = document.getElementById('mfEmoji').value.trim() || null;
+    const featured = document.getElementById('mfFeatured').checked;
+    if (id) {
+        const m = members.find(x => x.id === id);
+        if (m) { m.name = name; m.photo = photo; m.emoji = emoji; m.featured = featured; }
+    } else {
+        const maxNum = members.reduce((mx, x) => Math.max(mx, parseInt(x.id.replace(/\D/g,'')) || 0), 0);
+        members.push({ id: 'm' + (maxNum + 1), name, photo, emoji, featured, funny_photos: [] });
+    }
+    await saveMembers();
+    renderMembersList();
+    renderDashboard();
+    document.getElementById('memberModal').classList.remove('active');
+});
+document.getElementById('memberModalClose').addEventListener('click', function() { document.getElementById('memberModal').classList.remove('active'); });
+document.getElementById('mfCancel').addEventListener('click', function() { document.getElementById('memberModal').classList.remove('active'); });
+
+// === RENDER: Stories ===
+function renderStoriesList() {
+    const container = document.getElementById('storiesList');
+    container.innerHTML = '';
+    stories.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'card-row';
+        const preview = s.emoji || '🍃';
+        div.innerHTML = '<div class="card-preview" style="font-size:1.2rem">' + preview + '</div><div class="card-info"><div class="card-name">' + s.title + '</div><div class="card-meta">' + (s.text || '').substring(0, 50) + ((s.text||'').length > 50 ? '...' : '') + '</div></div><div class="card-actions"><button class="e-btn" onclick="editStory(' + s.id + ')" title="Edit">✏️</button><button class="d-btn" onclick="deleteStory(' + s.id + ')" title="Delete">🗑</button></div>';
+        container.appendChild(div);
+    });
+}
+function editStory(id) {
+    const s = stories.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('sfId').value = id;
+    document.getElementById('sfEmoji').value = s.emoji || '';
+    document.getElementById('sfTitle').value = s.title;
+    document.getElementById('sfDate').value = s.date || '';
+    document.getElementById('sfDivider').value = s.divider || '';
+    document.getElementById('sfText').value = s.text || '';
+    document.getElementById('storyModalTitle').textContent = '✏️ Edit Story';
+    document.getElementById('sfSubmit').textContent = '💾 Update';
+    document.getElementById('storyModal').classList.add('active');
+}
+async function deleteStory(id) {
+    if (!confirm('Delete this story?')) return;
+    stories = stories.filter(s => s.id !== id);
+    await saveStories();
+    renderStoriesList();
+    renderDashboard();
+}
+document.getElementById('addStoryBtn').addEventListener('click', function() {
+    document.getElementById('sfId').value = '';
+    document.getElementById('sfEmoji').value = '🍃';
+    document.getElementById('sfTitle').value = '';
+    document.getElementById('sfDate').value = '';
+    document.getElementById('sfDivider').value = '✨ ✨ ✨';
+    document.getElementById('sfText').value = '';
+    document.getElementById('storyModalTitle').textContent = '➕ Add Story';
+    document.getElementById('sfSubmit').textContent = '💾 Save';
+    document.getElementById('storyModal').classList.add('active');
+});
+document.getElementById('sfSubmit').addEventListener('click', async function() {
+    const id = parseInt(document.getElementById('sfId').value);
+    const emoji = document.getElementById('sfEmoji').value.trim() || '🍃';
+    const title = document.getElementById('sfTitle').value.trim();
+    const date = document.getElementById('sfDate').value.trim() || null;
+    const divider = document.getElementById('sfDivider').value.trim() || '✨ ✨ ✨';
+    const text = document.getElementById('sfText').value.trim();
+    if (!title || !text) { alert('Title and story text are required!'); return; }
+    if (!isNaN(id)) {
+        const s = stories.find(x => x.id === id);
+        if (s) { s.emoji = emoji; s.title = title; s.date = date; s.divider = divider; s.text = text; }
+    } else {
+        stories.push({ id: undefined, emoji, title, date, divider, text });
+    }
+    await saveStories();
+    renderStoriesList();
+    renderDashboard();
+    document.getElementById('storyModal').classList.remove('active');
+});
+document.getElementById('storyModalClose').addEventListener('click', function() { document.getElementById('storyModal').classList.remove('active'); });
+document.getElementById('sfCancel').addEventListener('click', function() { document.getElementById('storyModal').classList.remove('active'); });
+
+// === BOARD ===
+function renderBoardPreview() {
+    const canvas = document.getElementById('boardPreview');
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * (window.devicePixelRatio || 1);
+    canvas.height = rect.height * (window.devicePixelRatio || 1);
+    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    boardStrokes.forEach(stroke => {
+        for (let i = 1; i < stroke.length; i++) {
+            const from = stroke[i - 1], to = stroke[i];
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.strokeStyle = to.color || '#444';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+    });
+}
+document.getElementById('clearBoardBtn').addEventListener('click', async function() {
+    if (!confirm('Clear the entire board? This cannot be undone.')) return;
+    if (!confirm('Are you sure?')) return;
+    boardStrokes = [];
+    if (supaClient) {
+        await supaClient.from('board_strokes').upsert({ id: 1, strokes: [] });
+    }
+    renderBoardPreview();
+    renderDashboard();
+});
+
+// === DATA TOOLS ===
+document.getElementById('exportBtn').addEventListener('click', function() {
+    const data = { members, stories, board: boardStrokes };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'ielts64-backup.json'; a.click();
+    URL.revokeObjectURL(url);
+});
+document.getElementById('importBtn').addEventListener('click', function() {
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+    input.onchange = async function(e) {
+        const file = e.target.files[0]; if (!file) return;
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            if (!data.members || !data.stories) { alert('Invalid backup file!'); return; }
+            if (!confirm('This will overwrite ALL current data. Continue?')) return;
+            members = data.members; await saveMembers();
+            stories = data.stories; await saveStories();
+            boardStrokes = data.board || [];
+            if (supaClient) await supaClient.from('board_strokes').upsert({ id: 1, strokes: boardStrokes });
+            await Promise.all([loadMembers(), loadStories(), loadBoard()]);
+            renderDashboard(); renderMembersList(); renderStoriesList(); renderBoardPreview();
+            alert('Data imported successfully!');
+        } catch(err) { alert('Invalid file!'); }
+    };
+    input.click();
+});
+document.getElementById('resetBtn').addEventListener('click', async function() {
+    if (!confirm('Reset ALL data to defaults? This cannot be undone.')) return;
+    if (!confirm('Really reset? All custom data will be lost.')) return;
+    const DEFAULT_MEMBERS = [
+        { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true, funny_photos:[] },
+        { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false, funny_photos:[] },
+        { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false, funny_photos:[] },
+        { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false, funny_photos:[] },
+        { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[] },
+        { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[] },
+        { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[] },
+        { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'] },
+        { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'] },
+        { id:'m100', name:'Student', photo:null, emoji:'👩‍🎓', featured:false, funny_photos:[] },
+        { id:'m101', name:'Student', photo:null, emoji:'👩‍💼', featured:false, funny_photos:[] },
+        { id:'m102', name:'Student', photo:null, emoji:'👨‍💻', featured:false, funny_photos:[] },
+        { id:'m103', name:'Student', photo:null, emoji:'👩‍🎨', featured:false, funny_photos:[] },
+        { id:'m104', name:'Student', photo:null, emoji:'👨‍🏫', featured:false, funny_photos:[] },
+        { id:'m105', name:'Student', photo:null, emoji:'👩‍🔬', featured:false, funny_photos:[] },
+        { id:'m106', name:'Student', photo:null, emoji:'👨‍🚀', featured:false, funny_photos:[] },
+        { id:'m107', name:'Student', photo:null, emoji:'👩‍🚒', featured:false, funny_photos:[] },
+        { id:'m108', name:'Student', photo:null, emoji:'👨‍✈️', featured:false, funny_photos:[] },
+        { id:'m109', name:'Student', photo:null, emoji:'👩‍⚕️', featured:false, funny_photos:[] },
+        { id:'m110', name:'Student', photo:null, emoji:'👨‍🍳', featured:false, funny_photos:[] },
+        { id:'m111', name:'Student', photo:null, emoji:'👩‍🎤', featured:false, funny_photos:[] },
+        { id:'m112', name:'Student', photo:null, emoji:'👨‍🎸', featured:false, funny_photos:[] }
+    ];
+    const DEFAULT_STORIES = [
+        { emoji:'☕', title:'Where It All Began', date:'November 2024', divider:'☕ ☕ ☕', text:'It started with a shared dream of mastering IELTS. We walked into that classroom as strangers and walked out as family. Each lesson, each practice test, each laugh brought us closer together.' },
+        { emoji:'🎤', title:'Speaking Sessions', date:'The Fun Part', divider:'🎤 🎤 🎤', text:'The speaking sessions were something else. From stumbling over words to confidently expressing our thoughts, we grew together. The mock tests felt real, the feedback was honest, and the improvement was real.' },
+        { emoji:'📝', title:'The Writing Struggles', date:'Task 1 & 2', divider:'📝 📝 📝', text:'Ah, the writing tasks! Graphs, letters, essays — we tackled them all. Late nights brainstorming ideas, checking each others essays, and celebrating those Band 7+ scores. Every comment, every correction made us better.' },
+        { emoji:'🎉', title:'The Last Day', date:'Farewell', divider:'🎉 🎉 🎉', text:'The final day was bittersweet. Certificates in hand, photos taken, promises to stay in touch. But this is not goodbye — this is just the beginning of a lifelong friendship. IELTS Batch 64 forever!' }
+    ];
+    try { await supaClient.from('members').delete().gte('id', '') } catch(e){}
+    try { await supaClient.from('stories').delete().gte('id', 0) } catch(e){}
+    members = DEFAULT_MEMBERS.map(m => ({...m}));
+    stories = DEFAULT_STORIES.map((s, i) => ({...s, id: undefined}));
+    boardStrokes = [];
+    await saveMembers(); await saveStories();
+    if (supaClient) await supaClient.from('board_strokes').upsert({ id: 1, strokes: [] });
+    renderDashboard(); renderMembersList(); renderStoriesList(); renderBoardPreview();
+    alert('Reset complete!');
+});
+
+// === RESIZE BOARD PREVIEW ===
+let resizeTimer;
+window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderBoardPreview, 200);
+});
+
+// === INIT ===
+async function init() {
+    await Promise.all([loadMembers(), loadStories(), loadBoard()]);
+    renderDashboard();
+    renderMembersList();
+    renderStoriesList();
+    setTimeout(renderBoardPreview, 100);
+}
+
+if (!checkAuth()) {
+    document.getElementById('loginBtn').addEventListener('click', function check() {
+        if (sessionStorage.getItem('admin_auth') === '1') init();
+    });
+}
+</script>
+</body>
+</html>

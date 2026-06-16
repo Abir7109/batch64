@@ -1994,15 +1994,12 @@
 
         async function saveStories() {
             try { localStorage.setItem('ielts64_stories', JSON.stringify(stories)); } catch(e) {}
+            if (!supaClient) return;
             try {
-                const { error: delErr } = await supaClient.from('stories').delete().gte('id', 0);
-                if (delErr) throw delErr;
-                if (stories.length > 0) {
-                    const items = stories.map(s => ({ emoji: s.emoji || '🍃', title: s.title, date: s.date || null, divider: s.divider || null, text: s.text }));
-                    const { data, error: insErr } = await supaClient.from('stories').insert(items).select();
-                    if (insErr) throw insErr;
-                    if (data) { data.forEach((row, i) => { if (stories[i]) stories[i].id = row.id; }); }
-                }
+                const items = stories.map(s => ({ ...(s.id != null ? { id: s.id } : {}), emoji: s.emoji || '🍃', title: s.title, date: s.date || null, divider: s.divider || null, text: s.text }));
+                const { data, error } = await supaClient.from('stories').upsert(items, { onConflict: 'id' }).select();
+                if (error) throw error;
+                if (data) { data.forEach((row, i) => { if (stories[i]) stories[i].id = row.id; }); }
             } catch(e) { console.warn('Supabase stories sync failed', e); }
         }
 
@@ -2811,20 +2808,16 @@
         }
         async function saveMembers() {
             try { localStorage.setItem('ielts64_members', JSON.stringify(members)); } catch(e) {}
+            if (!supaClient) return;
             try {
-                const { error: delErr } = await supaClient.from('members').delete().gte('id', '');
-                if (delErr) throw delErr;
-                if (members.length > 0) {
-                    const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
-                    const { error: insErr } = await supaClient.from('members').insert(items);
-                    if (insErr && insErr.message && insErr.message.includes('funny_photos')) {
-                        // Column doesn't exist yet — retry without it
-                        const fallback = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
-                        const { error: retryErr } = await supaClient.from('members').insert(fallback);
-                        if (retryErr) throw retryErr;
-                    } else if (insErr) {
-                        throw insErr;
-                    }
+                const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
+                const { error } = await supaClient.from('members').upsert(items, { onConflict: 'id' });
+                if (error && error.message && error.message.includes('funny_photos')) {
+                    const fallback = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+                    const { error: retryErr } = await supaClient.from('members').upsert(fallback, { onConflict: 'id' });
+                    if (retryErr) throw retryErr;
+                } else if (error) {
+                    throw error;
                 }
             } catch(e) { console.warn('Supabase members sync failed', e); }
         }
