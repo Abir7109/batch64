@@ -2684,6 +2684,7 @@
                     strokes.push(currentStroke.slice());
                     if (fitTimer) clearTimeout(fitTimer);
                     fitTimer = setTimeout(autoFit, 3000);
+                    boardSave();
                 }
                 currentStroke = [];
                 document.getElementById('boardMsg').textContent = '✏️ ' + strokes.length + (strokes.length === 1 ? ' stroke' : ' strokes') + ' drawn';
@@ -2763,6 +2764,7 @@
                 if (strokes.length === 0) return;
                 if (fitTimer) { clearTimeout(fitTimer); fitTimer = null; }
                 strokes.pop();
+                boardSave();
                 if (strokes.length > 0) {
                     fitTimer = setTimeout(autoFit, 3000);
                 }
