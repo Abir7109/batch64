@@ -2036,9 +2036,9 @@
 
     <script>
         // ===== SUPABASE =====
-        let supabase = null;
+        let supaClient = null;
         try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            supaClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } catch(e) { console.warn('Supabase init failed, running in local-only mode', e); }
 
         // ===== STORY DATA =====
@@ -2050,7 +2050,7 @@
 
         async function fetchStories() {
             try {
-                const { data, error } = await supabase.from('stories').select('*').order('id');
+                const { data, error } = await supaClient.from('stories').select('*').order('id');
                 if (!error && data && data.length > 0) { stories = data; return; }
             } catch(e) { console.warn('Supabase unavailable, using localStorage', e); }
             try {
@@ -2064,11 +2064,11 @@
         async function saveStories() {
             try { localStorage.setItem('ielts64_stories', JSON.stringify(stories)); } catch(e) {}
             try {
-                const { error: delErr } = await supabase.from('stories').delete().gte('id', 0);
+                const { error: delErr } = await supaClient.from('stories').delete().gte('id', 0);
                 if (delErr) throw delErr;
                 if (stories.length > 0) {
                     const items = stories.map(s => ({ emoji: s.emoji || '🍃', title: s.title, date: s.date || null, divider: s.divider || null, text: s.text }));
-                    const { data, error: insErr } = await supabase.from('stories').insert(items).select();
+                    const { data, error: insErr } = await supaClient.from('stories').insert(items).select();
                     if (insErr) throw insErr;
                     if (data) { data.forEach((row, i) => { if (stories[i]) stories[i].id = row.id; }); }
                 }
@@ -2600,15 +2600,15 @@
         let boardRedraw = null;
         function boardSave() {
             try { localStorage.setItem('ielts64_board', JSON.stringify(boardStrokes)); } catch(e) {}
-            if (supabase) {
-                supabase.from('board_strokes').upsert({ id: 1, strokes: boardStrokes, updated_at: new Date().toISOString() }).then(({ error }) => {
+            if (supaClient) {
+                supaClient.from('board_strokes').upsert({ id: 1, strokes: boardStrokes, updated_at: new Date().toISOString() }).then(({ error }) => {
                     if (error) console.warn('Supabase board save failed', error);
                 });
             }
         }
         async function boardLoad() {
             try {
-                const { data, error } = await supabase.from('board_strokes').select('strokes').eq('id', 1).single();
+                const { data, error } = await supaClient.from('board_strokes').select('strokes').eq('id', 1).single();
                 if (!error && data && data.strokes && data.strokes.length > 0) {
                     boardStrokes = data.strokes;
                     return true;
@@ -2793,7 +2793,7 @@
 
         async function loadMembers() {
             try {
-                const { data, error } = await supabase.from('members').select('*');
+                const { data, error } = await supaClient.from('members').select('*');
                 if (!error && data && data.length > 0) { members = data; return; }
             } catch(e) { console.warn('Supabase members unavailable, using localStorage', e); }
             try {
@@ -2806,11 +2806,11 @@
         async function saveMembers() {
             try { localStorage.setItem('ielts64_members', JSON.stringify(members)); } catch(e) {}
             try {
-                const { error: delErr } = await supabase.from('members').delete().gte('id', '');
+                const { error: delErr } = await supaClient.from('members').delete().gte('id', '');
                 if (delErr) throw delErr;
                 if (members.length > 0) {
                     const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
-                    const { error: insErr } = await supabase.from('members').insert(items);
+                    const { error: insErr } = await supaClient.from('members').insert(items);
                     if (insErr) throw insErr;
                 }
             } catch(e) { console.warn('Supabase members sync failed', e); }
@@ -3049,9 +3049,9 @@
             localStorage.removeItem('ielts64_stories');
             localStorage.removeItem('ielts64_board');
             try {
-                await supabase.from('members').delete().gte('id', '');
-                await supabase.from('stories').delete().gte('id', 0);
-                await supabase.from('board_strokes').upsert({ id: 1, strokes: [] });
+                await supaClient.from('members').delete().gte('id', '');
+                await supaClient.from('stories').delete().gte('id', 0);
+                await supaClient.from('board_strokes').upsert({ id: 1, strokes: [] });
             } catch(e) { console.warn('Supabase reset failed', e); }
             location.reload();
         });
