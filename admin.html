@@ -318,15 +318,22 @@ document.querySelectorAll('.sidebar-nav a').forEach(a => {
 async function loadMembers() {
     try {
         const { data, error } = await supaClient.from('members').select('*');
-        if (!error && data) members = data.map(m => ({ ...m, funny_photos: m.funny_photos || [] })).sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,'')));
+        if (!error && data) members = data.map(m => ({ ...m, funny_photos: m.funny_photos || [], card_color: m.card_color || null })).sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,'')));
     } catch(e) { console.warn(e); }
 }
 async function saveMembers() {
     try {
-        const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
+        const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [], card_color: m.card_color || null }));
         const { error } = await supaClient.from('members').upsert(items, { onConflict: 'id' });
         if (error && error.message && error.message.includes('funny_photos')) {
-            const fb = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+            const fb = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, card_color: m.card_color || null }));
+            const { error: fbErr } = await supaClient.from('members').upsert(fb, { onConflict: 'id' });
+            if (fbErr && fbErr.message && fbErr.message.includes('card_color')) {
+                const fb2 = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+                await supaClient.from('members').upsert(fb2, { onConflict: 'id' });
+            } else if (fbErr) throw fbErr;
+        } else if (error && error.message && error.message.includes('card_color')) {
+            const fb = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
             await supaClient.from('members').upsert(fb, { onConflict: 'id' });
         } else if (error) throw error;
     } catch(e) { console.warn('saveMembers failed', e); }
@@ -456,7 +463,7 @@ document.getElementById('mfSubmit').addEventListener('click', async function() {
         if (m) { m.name = name; m.photo = photo; m.emoji = emoji; m.featured = featured; }
     } else {
         const maxNum = members.reduce((mx, x) => Math.max(mx, parseInt(x.id.replace(/\D/g,'')) || 0), 0);
-        members.push({ id: 'm' + (maxNum + 1), name, photo, emoji, featured, funny_photos: [] });
+        members.push({ id: 'm' + (maxNum + 1), name, photo, emoji, featured, funny_photos: [], card_color: null });
     }
     await saveMembers();
     renderMembersList();
@@ -663,19 +670,19 @@ document.getElementById('resetBtn').addEventListener('click', async function() {
     if (!confirm('Reset ALL data to defaults? This cannot be undone.')) return;
     if (!confirm('Really reset? All custom data will be lost.')) return;
     const DEFAULT_MEMBERS = [
-        { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true, funny_photos:[] },
-        { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'] },
-        { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'] },
-        { id:'m10', name:'Momo', photo:'MEMBER/MOMO.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m11', name:'Rafi', photo:'MEMBER/Rafi.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m12', name:'Tareq Hasan', photo:'MEMBER/Tareq Hasan.jpeg', emoji:null, featured:false, funny_photos:[] },
-        { id:'m13', name:'Shaila', photo:'MEMBER/Shaila.jpeg', emoji:null, featured:false, funny_photos:[] }
+        { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true, funny_photos:[], card_color:null },
+        { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'], card_color:null },
+        { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'], card_color:null },
+        { id:'m10', name:'Momo', photo:'MEMBER/MOMO.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m11', name:'Rafi', photo:'MEMBER/Rafi.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m12', name:'Tareq Hasan', photo:'MEMBER/Tareq Hasan.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+        { id:'m13', name:'Shaila', photo:'MEMBER/Shaila.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null }
     ];
     const DEFAULT_STORIES = [
         { emoji:'☕', title:'Where It All Began', date:'November 2024', divider:'☕ ☕ ☕', text:'It started with a shared dream of mastering IELTS. We walked into that classroom as strangers and walked out as family. Each lesson, each practice test, each laugh brought us closer together.' },

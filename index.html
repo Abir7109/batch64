@@ -970,6 +970,14 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             object-fit: contain;
         }
+        .color-section { margin-top:1rem; padding-top:.8rem; border-top:2px dashed #f0ebe0; }
+        .color-head { font-size:.75rem; color:#bbb; margin-bottom:.6rem; letter-spacing:.5px; }
+        .color-grid { display:flex; flex-wrap:wrap; gap:8px; }
+        .color-swatch { width:36px; height:36px; border-radius:50%; border:3px solid transparent; cursor:pointer; transition:all .2s ease; position:relative; touch-action:manipulation; }
+        .color-swatch:hover { transform:scale(1.15); }
+        .color-swatch.active { border-color:#e8956a; box-shadow:0 0 0 2px #fff,0 0 0 4px #e8956a; }
+        .color-swatch.none-swatch { background:#fff; border-color:#e0ddd5; display:flex; align-items:center; justify-content:center; font-size:1rem; }
+        .color-swatch.none-swatch.active { border-color:#e8956a; }
 
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -1846,13 +1854,18 @@
             <div class="popup-emoji" id="popupEmoji" style="display:none"></div>
             <div class="popup-name" id="popupName"></div>
             <div class="popup-role">Member of IELTS Batch 64</div>
-            <div class="funny-section" id="funnySection" style="display:none">
-                <div class="funny-head">😂 Funny Photos</div>
-                <div class="funny-grid" id="funnyGrid"></div>
-            </div>
+        <div class="funny-section" id="funnySection" style="display:none">
+            <div class="funny-head">😂 Funny Photos</div>
+            <div class="funny-grid" id="funnyGrid"></div>
+        </div>
+        <div class="color-section">
+            <div class="color-head">🎨 Card Color</div>
+            <div class="color-grid" id="colorGrid"></div>
         </div>
     </div>
-    <div class="funny-lightbox" id="funnyLightbox" onclick="this.classList.remove('active')">
+</div>
+
+<div class="funny-lightbox" id="funnyLightbox" onclick="this.classList.remove('active')">
         <img id="funnyLightboxImg" src="" alt="">
     </div>
 
@@ -2581,6 +2594,28 @@
                 });
             }
             funnySection.style.display = 'block';
+            // Render color swatches
+            const colorGrid = document.getElementById('colorGrid');
+            const COLORS = [
+                { label:'None', val:'' }, { label:'Blush Pink', val:'linear-gradient(135deg,#fce4ec,#f8bbd0)' }, { label:'Lavender', val:'linear-gradient(135deg,#f3e5f5,#e1bee7)' }, { label:'Baby Blue', val:'linear-gradient(135deg,#e3f2fd,#bbdefb)' }, { label:'Mint Green', val:'linear-gradient(135deg,#e8f5e9,#c8e6c9)' }, { label:'Apricot', val:'linear-gradient(135deg,#fff3e0,#ffccbc)' }, { label:'Soft Coral', val:'linear-gradient(135deg,#fbe9e7,#ffab91)' }, { label:'Lemon', val:'linear-gradient(135deg,#fffde7,#fff9c4)' }, { label:'Lilac', val:'linear-gradient(135deg,#e8eaf6,#c5cae9)' }
+            ];
+            colorGrid.innerHTML = '';
+            COLORS.forEach(c => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch' + (c.val ? '' : ' none-swatch');
+                if (c.val) { swatch.style.background = c.val; } else { swatch.textContent = '✕'; }
+                if ((!member.card_color && !c.val) || (member.card_color === c.val)) swatch.classList.add('active');
+                swatch.title = c.label;
+                swatch.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    member.card_color = c.val || null;
+                    saveMembers();
+                    renderMembers();
+                    colorGrid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+                    swatch.classList.add('active');
+                });
+                colorGrid.appendChild(swatch);
+            });
             overlay.classList.add('active');
         }
         function closeMemberPopup(e) {
@@ -2771,25 +2806,25 @@
         })();
 
         const DEFAULT_MEMBERS = [
-            { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true, funny_photos:[] },
-            { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'] },
-            { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'] },
-            { id:'m10', name:'Momo', photo:'MEMBER/MOMO.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m11', name:'Rafi', photo:'MEMBER/Rafi.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m12', name:'Tareq Hasan', photo:'MEMBER/Tareq Hasan.jpeg', emoji:null, featured:false, funny_photos:[] },
-            { id:'m13', name:'Shaila', photo:'MEMBER/Shaila.jpeg', emoji:null, featured:false, funny_photos:[] }
+            { id:'m1', name:'Sadman Sir', photo:'MEMBER/TEACHER-SADMAN.jpeg', emoji:null, featured:true, funny_photos:[], card_color:null },
+            { id:'m2', name:'Abir', photo:'MEMBER/ABIR.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m3', name:'Sabbir', photo:'MEMBER/SABBIIR.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m4', name:'Adnan', photo:'MEMBER/Adnan.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m5', name:'Purno', photo:'MEMBER/Purno.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m6', name:'Rion', photo:'MEMBER/Rion.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'], card_color:null },
+            { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'], card_color:null },
+            { id:'m10', name:'Momo', photo:'MEMBER/MOMO.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m11', name:'Rafi', photo:'MEMBER/Rafi.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m12', name:'Tareq Hasan', photo:'MEMBER/Tareq Hasan.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null },
+            { id:'m13', name:'Shaila', photo:'MEMBER/Shaila.jpeg', emoji:null, featured:false, funny_photos:[], card_color:null }
         ];
         let members = [];
         async function loadMembers() {
             try {
                 const { data, error } = await supaClient.from('members').select('*');
-                if (!error && data && data.length > 0) { members = data.map(m => ({ ...m, funny_photos: m.funny_photos || [] })).sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,''))); return; }
+                if (!error && data && data.length > 0) { members = data.map(m => ({ ...m, funny_photos: m.funny_photos || [], card_color: m.card_color || null })).sort((a,b) => parseInt(a.id.replace(/\D/g,'')) - parseInt(b.id.replace(/\D/g,''))); return; }
             } catch(e) { console.warn('Supabase members unavailable, using localStorage', e); }
             try {
                 const saved = localStorage.getItem('ielts64_members');
@@ -2802,11 +2837,19 @@
             try { localStorage.setItem('ielts64_members', JSON.stringify(members)); } catch(e) {}
             if (!supaClient) return;
             try {
-                const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
+                const items = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [], card_color: m.card_color || null }));
                 const { error } = await supaClient.from('members').upsert(items, { onConflict: 'id' });
                 if (error && error.message && error.message.includes('funny_photos')) {
-                    const fallback = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
-                    const { error: retryErr } = await supaClient.from('members').upsert(fallback, { onConflict: 'id' });
+                    const fb = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, card_color: m.card_color || null }));
+                    const { error: fbErr } = await supaClient.from('members').upsert(fb, { onConflict: 'id' });
+                    if (fbErr && fbErr.message && fbErr.message.includes('card_color')) {
+                        const fb2 = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false }));
+                        const { error: retryErr2 } = await supaClient.from('members').upsert(fb2, { onConflict: 'id' });
+                        if (retryErr2) throw retryErr2;
+                    } else if (fbErr) throw fbErr;
+                } else if (error && error.message && error.message.includes('card_color')) {
+                    const fb = members.map(m => ({ id: m.id, name: m.name, photo: m.photo || null, emoji: m.emoji || null, featured: m.featured || false, funny_photos: m.funny_photos || [] }));
+                    const { error: retryErr } = await supaClient.from('members').upsert(fb, { onConflict: 'id' });
                     if (retryErr) throw retryErr;
                 } else if (error) {
                     throw error;
@@ -2820,6 +2863,7 @@
             members.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'member-card' + (m.featured ? ' featured' : '');
+                if (m.card_color) { card.style.background = m.card_color; }
                 if (m.photo) {
                     card.innerHTML = '<img class="card-img" src="' + m.photo.replace(/"/g,'&quot;') + '" alt="' + m.name.replace(/"/g,'&quot;') + '"><span class="card-label">' + m.name + '</span>';
                 } else {

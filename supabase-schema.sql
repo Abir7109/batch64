@@ -9,8 +9,10 @@ CREATE TABLE members (
   emoji TEXT,
   featured BOOLEAN DEFAULT FALSE,
   funny_photos JSONB DEFAULT '[]'::jsonb,
+  card_color TEXT DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+-- Migration: ALTER TABLE members ADD COLUMN IF NOT EXISTS card_color TEXT DEFAULT NULL;
 
 -- Enable Row Level Security (optional but recommended)
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
