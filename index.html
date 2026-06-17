@@ -875,6 +875,18 @@
             transition: transform 0.2s ease;
         }
         .member-popup .popup-close:hover { transform: scale(1.2); color: #e8956a; }
+        .popup-vibe {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 8rem;
+            opacity: 0;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+            transition: opacity 0.5s ease;
+        }
+        .popup-vibe.show { opacity: 0.1; }
         .member-popup .popup-washi {
             position: absolute;
             bottom: -10px; left: 50%;
@@ -1849,6 +1861,7 @@
     <div class="member-overlay" id="memberOverlay" onclick="closeMemberPopup(event)">
         <div class="member-popup" onclick="event.stopPropagation()">
             <div class="popup-washi"></div>
+            <div class="popup-vibe" id="popupVibe"></div>
             <button class="popup-close" onclick="closeMemberPopup()">&times;</button>
             <img class="popup-img" id="popupImg" src="" alt="" style="display:none">
             <div class="popup-emoji" id="popupEmoji" style="display:none"></div>
@@ -2597,7 +2610,7 @@
             // Render color swatches
             const colorGrid = document.getElementById('colorGrid');
             const COLORS = [
-                { label:'None', val:'' }, { label:'Blush Pink', val:'linear-gradient(135deg,#fce4ec,#f8bbd0)' }, { label:'Lavender', val:'linear-gradient(135deg,#f3e5f5,#e1bee7)' }, { label:'Baby Blue', val:'linear-gradient(135deg,#e3f2fd,#bbdefb)' }, { label:'Mint Green', val:'linear-gradient(135deg,#e8f5e9,#c8e6c9)' }, { label:'Apricot', val:'linear-gradient(135deg,#fff3e0,#ffccbc)' }, { label:'Soft Coral', val:'linear-gradient(135deg,#fbe9e7,#ffab91)' }, { label:'Lemon', val:'linear-gradient(135deg,#fffde7,#fff9c4)' }, { label:'Lilac', val:'linear-gradient(135deg,#e8eaf6,#c5cae9)' }
+                { label:'None', val:'', emoji:'' }, { label:'Blush Pink', val:'linear-gradient(135deg,#fce4ec,#f8bbd0)', emoji:'🌸' }, { label:'Lavender', val:'linear-gradient(135deg,#f3e5f5,#e1bee7)', emoji:'✨' }, { label:'Baby Blue', val:'linear-gradient(135deg,#e3f2fd,#bbdefb)', emoji:'🌊' }, { label:'Mint Green', val:'linear-gradient(135deg,#e8f5e9,#c8e6c9)', emoji:'🌿' }, { label:'Apricot', val:'linear-gradient(135deg,#fff3e0,#ffccbc)', emoji:'🌅' }, { label:'Soft Coral', val:'linear-gradient(135deg,#fbe9e7,#ffab91)', emoji:'🍑' }, { label:'Lemon', val:'linear-gradient(135deg,#fffde7,#fff9c4)', emoji:'🌻' }, { label:'Lilac', val:'linear-gradient(135deg,#e8eaf6,#c5cae9)', emoji:'💜' }
             ];
             colorGrid.innerHTML = '';
             COLORS.forEach(c => {
@@ -2609,6 +2622,9 @@
                 swatch.addEventListener('click', function(e) {
                     e.stopPropagation();
                     member.card_color = c.val || null;
+                    const vibeEl = document.getElementById('popupVibe');
+                    vibeEl.textContent = c.emoji || '';
+                    vibeEl.classList.toggle('show', !!c.emoji);
                     saveMembers();
                     renderMembers();
                     colorGrid.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
@@ -2616,6 +2632,12 @@
                 });
                 colorGrid.appendChild(swatch);
             });
+            // Set initial vibe from current card_color
+            const curColor = member.card_color;
+            const curC = COLORS.find(c => c.val === curColor);
+            const vibeEl = document.getElementById('popupVibe');
+            vibeEl.textContent = (curC && curC.emoji) || '';
+            vibeEl.classList.toggle('show', !!(curC && curC.emoji));
             overlay.classList.add('active');
         }
         function closeMemberPopup(e) {
