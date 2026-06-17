@@ -527,12 +527,18 @@
             grid-template-columns: repeat(6, 1fr);
             align-items: center;
             justify-items: center;
-            opacity: 0.4;
+            opacity: 0.35;
             pointer-events: none;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             z-index: 0;
             overflow: hidden;
             border-radius: inherit;
+        }
+        .member-card .card-img,
+        .member-card .card-emoji,
+        .member-card .card-label {
+            position: relative;
+            z-index: 1;
         }
         .member-card .card-img {
             width: 90px;
