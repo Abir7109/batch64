@@ -97,6 +97,14 @@ a{color:#e8956a;text-decoration:none}
 /* Board */
 .board-preview-wrap{background:#fff;border-radius:14px;border:2px solid #FFF2D0;overflow:hidden;margin-bottom:1rem}
 .board-preview-wrap canvas{display:block;width:100%;height:200px}
+.stroke-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border-radius:10px;border:1px solid #f0ebe0;margin-bottom:4px;transition:border-color .2s ease}
+.stroke-item:hover{border-color:#FFB2B2}
+.stroke-item canvas{width:60px;height:36px;border-radius:6px;border:1px solid #f0ebe0;flex-shrink:0}
+.stroke-info{flex:1;font-size:.72rem;color:#aaa;min-width:0}
+.stroke-info strong{color:#e8956a;font-size:.8rem}
+.stroke-actions{flex-shrink:0}
+.stroke-actions button{background:none;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;transition:all .15s;touch-action:manipulation}
+.stroke-actions .d-btn:hover{background:#ffe0e0}
 
 /* Data */
 .data-panel{background:#fff;border-radius:14px;border:2px solid #FFF2D0;padding:1.2rem}
@@ -172,11 +180,14 @@ a{color:#e8956a;text-decoration:none}
 
     <div class="section" id="secBoard">
         <h1>🎨 Board</h1>
-        <p class="sub">Shared drawing board</p>
-        <div class="stats-row" style="grid-template-columns:1fr">
+        <p class="sub">Shared drawing board — click any stroke below to erase it</p>
+        <div class="stats-row" style="grid-template-columns:1fr 1fr">
             <div class="stat-card"><div class="num" id="boardStrokeCount">0</div><div class="lbl">Strokes</div></div>
+            <div class="stat-card" style="cursor:pointer" id="boardRefreshBtn"><div class="num">↻</div><div class="lbl">Refresh from server</div></div>
         </div>
         <div class="board-preview-wrap"><canvas id="boardPreview"></canvas></div>
+        <div id="boardStrokeList" style="margin-bottom:.4rem"></div>
+        <div id="boardMsg" style="font-size:.72rem;color:#aaa;margin-bottom:.6rem"></div>
         <button class="btn danger" id="clearBoardBtn">🗑 Clear Entire Board</button>
     </div>
 
@@ -288,7 +299,9 @@ document.querySelectorAll('.sidebar-nav a').forEach(a => {
         document.querySelectorAll('.sidebar-nav a').forEach(x => x.classList.remove('active'));
         this.classList.add('active');
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById('sec' + this.dataset.section.charAt(0).toUpperCase() + this.dataset.section.slice(1)).classList.add('active');
+        const sec = document.getElementById('sec' + this.dataset.section.charAt(0).toUpperCase() + this.dataset.section.slice(1));
+        sec.classList.add('active');
+        if (this.dataset.section === 'board') { renderBoardPreview(); }
         document.getElementById('sidebar').classList.remove('open');
     });
 });
@@ -519,6 +532,27 @@ document.getElementById('storyModalClose').addEventListener('click', function() 
 document.getElementById('sfCancel').addEventListener('click', function() { document.getElementById('storyModal').classList.remove('active'); });
 
 // === BOARD ===
+function renderStrokePreview(canvas, stroke) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    if (!stroke || stroke.length < 2) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    stroke.forEach(p => { if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y; if (p.x > maxX) maxX = p.x; if (p.y > maxY) maxY = p.y; });
+    const sw = maxX - minX || 1, sh = maxY - minY || 1;
+    const scale = Math.min((w - 8) / sw, (h - 8) / sh, 1);
+    const pad = 4;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.lineWidth = Math.max(1.5, scale * 2);
+    for (let i = 1; i < stroke.length; i++) {
+        const from = stroke[i - 1], to = stroke[i];
+        ctx.beginPath();
+        ctx.moveTo((from.x - minX) * scale + pad, (from.y - minY) * scale + pad);
+        ctx.lineTo((to.x - minX) * scale + pad, (to.y - minY) * scale + pad);
+        ctx.strokeStyle = to.color || '#444';
+        ctx.stroke();
+    }
+}
 function renderBoardPreview() {
     const canvas = document.getElementById('boardPreview');
     const ctx = canvas.getContext('2d');
@@ -540,6 +574,44 @@ function renderBoardPreview() {
             ctx.stroke();
         }
     });
+    // Render stroke list
+    const list = document.getElementById('boardStrokeList');
+    list.innerHTML = '';
+    boardStrokes.forEach((stroke, idx) => {
+        const item = document.createElement('div');
+        item.className = 'stroke-item';
+        const cv = document.createElement('canvas');
+        cv.width = 120; cv.height = 72;
+        cv.style.width = '60px'; cv.style.height = '36px';
+        renderStrokePreview(cv, stroke);
+        const color = stroke.length > 0 ? (stroke[0].color || '#444') : '#444';
+        const len = stroke.length;
+        const info = document.createElement('div');
+        info.className = 'stroke-info';
+        info.innerHTML = '<strong>#' + (idx + 1) + '</strong> &middot; ' + len + ' pts &middot; <span style="color:' + color + '">●</span>';
+        const actions = document.createElement('div');
+        actions.className = 'stroke-actions';
+        const delBtn = document.createElement('button');
+        delBtn.className = 'd-btn';
+        delBtn.textContent = '🗑';
+        delBtn.title = 'Erase this stroke';
+        delBtn.addEventListener('click', async function() {
+            if (!confirm('Erase stroke #' + (idx + 1) + '?')) return;
+            boardStrokes.splice(idx, 1);
+            if (supaClient) {
+                await supaClient.from('board_strokes').upsert({ id: 1, strokes: boardStrokes });
+            }
+            renderBoardPreview();
+            renderDashboard();
+        });
+        actions.appendChild(delBtn);
+        item.appendChild(cv);
+        item.appendChild(info);
+        item.appendChild(actions);
+        list.appendChild(item);
+    });
+    // Scroll to bottom to show newest
+    list.scrollTop = list.scrollHeight;
 }
 document.getElementById('clearBoardBtn').addEventListener('click', async function() {
     if (!confirm('Clear the entire board? This cannot be undone.')) return;
@@ -550,6 +622,13 @@ document.getElementById('clearBoardBtn').addEventListener('click', async functio
     }
     renderBoardPreview();
     renderDashboard();
+});
+document.getElementById('boardRefreshBtn').addEventListener('click', async function() {
+    await loadBoard();
+    renderBoardPreview();
+    renderDashboard();
+    document.getElementById('boardMsg').textContent = '✓ Board refreshed';
+    setTimeout(() => document.getElementById('boardMsg').textContent = '', 2000);
 });
 
 // === DATA TOOLS ===
@@ -593,6 +672,7 @@ document.getElementById('resetBtn').addEventListener('click', async function() {
         { id:'m7', name:'Shuvo', photo:'MEMBER/Shuvo.jpeg', emoji:null, featured:false, funny_photos:[] },
         { id:'m8', name:'Rahul', photo:'MEMBER/Rahul.jpeg', emoji:null, featured:false, funny_photos:['funny/Rahul-1.jpeg','funny/rahul-2.jpeg'] },
         { id:'m9', name:'Shan', photo:'MEMBER/Shan.jpeg', emoji:null, featured:false, funny_photos:['funny/Shan.jpeg'] },
+        { id:'m10', name:'Momo', photo:'MEMBER/MOMO.jpeg', emoji:null, featured:false, funny_photos:[] },
         { id:'m100', name:'Student', photo:null, emoji:'👩‍🎓', featured:false, funny_photos:[] },
         { id:'m101', name:'Student', photo:null, emoji:'👩‍💼', featured:false, funny_photos:[] },
         { id:'m102', name:'Student', photo:null, emoji:'👨‍💻', featured:false, funny_photos:[] },
@@ -640,7 +720,9 @@ async function init() {
     setTimeout(renderBoardPreview, 100);
 }
 
-if (!checkAuth()) {
+if (checkAuth()) {
+    init();
+} else {
     document.getElementById('loginBtn').addEventListener('click', function check() {
         if (sessionStorage.getItem('admin_auth') === '1') init();
     });
