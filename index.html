@@ -2603,8 +2603,9 @@
         async function boardLoad() {
             try {
                 const { data, error } = await supaClient.from('board_strokes').select('strokes').eq('id', 1).single();
-                if (!error && data && data.strokes && data.strokes.length > 0) {
+                if (!error && data && data.strokes) {
                     boardStrokes = data.strokes;
+                    localStorage.removeItem('ielts64_board');
                     return true;
                 }
             } catch(e) { console.warn('Supabase board unavailable, using localStorage', e); }

@@ -348,7 +348,7 @@ async function saveStories() {
 async function loadBoard() {
     try {
         const { data, error } = await supaClient.from('board_strokes').select('strokes').eq('id', 1).single();
-        if (!error && data && data.strokes) boardStrokes = data.strokes;
+        if (!error && data && data.strokes != null) boardStrokes = data.strokes;
     } catch(e) { console.warn(e); }
 }
 
